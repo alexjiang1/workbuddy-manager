@@ -904,6 +904,13 @@ async def checkin_all(upstream_id: int | None = Query(None),
                     'code': 10001, 'message': '今日已签到，已跳过'}
 
         async with sem:
+            # 时间抖动（Jitter）：增加微随机延迟，使出站请求在时序上离散化，
+            # 消除并发请求在微秒级齐步走的脚本特征，规避腾讯 WAF / 风控网关关联与限流。
+            jitter = config.checkin_jitter_delay()
+            if jitter > 0:
+                logger.debug('账号 %s 批量签到时间抖动等待 %.3f 秒', uid[:12], jitter)
+                await asyncio.sleep(jitter)
+
             # 传完整 auth dict：billing 域要带 X-User-Id 等身份头
             code, message = await tencent.checkin({
                 'access_token': token,

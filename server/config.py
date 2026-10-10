@@ -28,6 +28,13 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, '').strip() or default)
+    except ValueError:
+        return default
+
+
 def _env_bool(name: str, default: bool = False) -> bool:
     """布尔开关。空值取默认；其余按 1/true/yes/on 判真（与既有 `== '1'` 写法兼容）。"""
     v = os.environ.get(name, '').strip().lower()
@@ -81,6 +88,22 @@ TENCENT_TIMEOUT = _env_int('WB_TENCENT_TIMEOUT', 15)
 # 「全部签到」的并发上限：太低会拖到前端超时（几十个账号时），
 # 太高又容易触发腾讯风控。5 是保守且够快的取值。
 CHECKIN_CONCURRENCY = max(1, _env_int('WB_CHECKIN_CONCURRENCY', 5))
+# 批量签到的时间抖动区间（秒）：
+# 为每个账号在发起签到前施加随机微延迟，使出站请求在时序上离散化，
+# 消除并发请求在微秒级齐步走的脚本特征，规避腾讯 WAF / 风控网关关联与限流。
+# 若 WB_CHECKIN_JITTER_MAX 设为 <= 0 则关闭抖动。
+CHECKIN_JITTER_MIN = max(0.0, _env_float('WB_CHECKIN_JITTER_MIN', 0.5))
+CHECKIN_JITTER_MAX = max(CHECKIN_JITTER_MIN, _env_float('WB_CHECKIN_JITTER_MAX', 2.0))
+
+
+def checkin_jitter_delay() -> float:
+    """返回批量签到的随机抖动延迟秒数（若 MAX <= 0 则返回 0.0）。"""
+    if CHECKIN_JITTER_MAX <= 0:
+        return 0.0
+    import random
+    return round(random.uniform(CHECKIN_JITTER_MIN, CHECKIN_JITTER_MAX), 3)
+
+
 TRUST_PROXY = _env('WB_TRUST_PROXY', '1') == '1'
 # 可信反向代理跳数：用于从 X-Forwarded-For 右侧取真实客户端 IP。
 # 前面直接是 1Panel/OpenResty 时保持 1；若还挂了 CDN 则设为 CDN+反代的层数。
