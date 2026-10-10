@@ -892,7 +892,10 @@ export default function AccountsPage() {
     // 于是被禁用的号按钮显示成「停用」，点一下反而给**已被禁用**的号再加一层
     // manual_disabled（越弄越糟），而真正需要的「启用」根本没有入口。
     const stopped = paused || viaBit || autoDisabled;
-    const hasClearableState = a.cooling === true || rateLimitedModels(a).length > 0;
+    const isLowCreditPaused = a.disabled === true && (
+      (a.disabled_reason != null && (a.disabled_reason.includes('低于30分') || a.disabled_reason.includes('保护暂停') || a.disabled_reason.includes('国际版余额低于')))
+    );
+    const hasClearableState = a.cooling === true || rateLimitedModels(a).length > 0 || isLowCreditPaused;
     return (
       <div className="flex justify-end gap-1">
         {/* 备注（issue #67）：只动本端库里的一行文本，不碰上游、不重启容器，

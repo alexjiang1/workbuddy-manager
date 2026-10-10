@@ -283,6 +283,7 @@ def merge_pool_status(accounts: list[dict], status: dict) -> list[dict]:
         # 账号（到期也不自愈），对 14017（试用未激活）只软冷却。展示原因才能
         # 让用户知道该去重新登录，而不是干等冷却。
         a['disabled_reason'] = str(p.get('disabled_reason') or '')
+        a['low_credit_exempt'] = bool(p.get('low_credit_exempt'))
         a['success_count'] = p.get('success_count')
         a['in_flight'] = p.get('in_flight')
         a['breaker_fails'] = p.get('breaker_fails')
@@ -716,7 +717,16 @@ def clear_account_cooling_state(uid: str) -> dict:
     account.pop('degrade_until', None)
     account['consecutive_fails'] = 0
     # disabled=true 时 reason 是禁用原因，不属于冷却域，不能误清。
-    if not bool(account.get('disabled')):
+    # 特例：若禁用原因是国际版低积分保护暂停，则强制清除操作应当解除该保护，并标记 low_credit_exempt=True
+    reason = str(account.get('reason') or '')
+    is_low_credit = bool(account.get('disabled')) and (
+        '低于30分' in reason or '保护暂停' in reason or '国际版余额低于' in reason
+    )
+    if is_low_credit:
+        account['disabled'] = False
+        account.pop('reason', None)
+        account['low_credit_exempt'] = True
+    elif not bool(account.get('disabled')):
         account.pop('reason', None)
 
     _atomic_write_json(path, state)
@@ -794,8 +804,12 @@ async def force_clear_account_cooling(uid: str) -> tuple[bool, str, dict]:
         )
         if account is None:
             return False, '该账号不在上游账号池里', {}
-        if not account.get('cooling') and not account.get('rate_limited_models'):
-            return True, '该账号当前没有冷却或模型级限流状态，无需清除', {}
+        reason = str(account.get('reason') or account.get('disabled_reason') or '')
+        is_low_credit = bool(account.get('disabled')) and (
+            '低于30分' in reason or '保护暂停' in reason or '国际版余额低于' in reason
+        )
+        if not account.get('cooling') and not account.get('rate_limited_models') and not is_low_credit:
+            return True, '该账号当前没有冷却、模型级限流或保护暂停状态，无需清除', {}
 
     stopped, stop_message = await _set_upstream_running(False)
     if not stopped:

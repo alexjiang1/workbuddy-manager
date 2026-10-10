@@ -9,6 +9,12 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent  # 仓库根目录
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / '.env')
+except ImportError:
+    pass
+
 
 def _env(name: str, default: str) -> str:
     v = os.environ.get(name, '').strip()
@@ -169,6 +175,10 @@ def ensure_dirs() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        AUTH_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
 
 
 def upstream_api_key() -> str:

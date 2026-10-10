@@ -87,6 +87,19 @@ class ForceClearCooling(unittest.TestCase):
         target = json.loads(self.state_path.read_text(encoding='utf-8'))['accounts']['target']
         self.assertEqual(target['reason'], 'request illegal')
 
+    def test_clears_low_credit_protection_and_sets_exempt(self) -> None:
+        data = json.loads(self.state_path.read_text(encoding='utf-8'))
+        data['accounts']['target']['disabled'] = True
+        data['accounts']['target']['reason'] = '国际版余额低于30分保护暂停'
+        self.state_path.write_text(json.dumps(data), encoding='utf-8')
+
+        wb2api.clear_account_cooling_state('target')
+        target = json.loads(self.state_path.read_text(encoding='utf-8'))['accounts']['target']
+        self.assertFalse(target.get('disabled'))
+        self.assertNotIn('reason', target)
+        self.assertTrue(target.get('low_credit_exempt'))
+
+
     def test_force_clear_stops_edits_and_starts(self) -> None:
         initial = {'connected': True, 'accounts': [{'uid': 'target', 'cooling': True}]}
         after = {'connected': True, 'accounts': [{

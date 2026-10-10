@@ -86,6 +86,7 @@ export function mergePoolStatus(
       healthy: typeof p.healthy === 'boolean' ? p.healthy : null,
       disabled: typeof p.disabled === 'boolean' ? p.disabled : null,
       disabled_reason: typeof p.disabled_reason === 'string' ? p.disabled_reason : '',
+      low_credit_exempt: typeof p.low_credit_exempt === 'boolean' ? p.low_credit_exempt : false,
       // 上游的手动停用状态位（issue #45）。取的是**这份快照**的值——用户点了
       // 停用后状态位由上游持有，本页靠心跳拿到新值；不取的话徽章要等下次整页
       // 刷新才更新，点了按钮看着没反应。

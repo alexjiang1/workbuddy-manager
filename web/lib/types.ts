@@ -25,6 +25,8 @@ export interface Account {
   disabled?: boolean | null;
   /** 被上游禁用时的原因（如 11140 request illegal 需重新登录）；空串表示未给出 */
   disabled_reason?: string | null;
+  /** 是否已人工豁免国际版低于30分低余额保护暂停 */
+  low_credit_exempt?: boolean | null;
   in_flight?: number | null;
   cooling?: boolean | null;
   /** 冷却剩余秒数（上游权威值：可能是上游明说的重置时刻，也可能是有界退避）；null = 未在冷却 */
