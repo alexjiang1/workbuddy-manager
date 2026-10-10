@@ -128,6 +128,9 @@ DEFAULT_ACCOUNT_PROXY = _env('WB_DEFAULT_ACCOUNT_PROXY', '')
 # 路径可用 WB_CCSWITCH_DIR / WB_ZCODE_DIR 覆盖（非默认安装位置），
 # 见 services/keyimport.py。
 LOCAL_IMPORT_ENABLED = _env_bool('WB_LOCAL_IMPORT', False)
+# 出站请求体 Prompt 脱敏与反代特征净化开关（默认开启）。
+# 剥离 Codex / Agent 特征标签，中性化交接上下文，遮蔽敏感生产凭据，防风控与数据泄露。
+PROMPT_SANITIZER_ENABLED = _env_bool('WB_PROMPT_SANITIZER', True)
 # 会话**总时长**上限（天）：登录后最多维持这么久，到点必须重新登录。
 #
 # 下限钳到 1 天：0（或负数）会让 cookie 的 exp 等于签发时刻，即「登录成功但

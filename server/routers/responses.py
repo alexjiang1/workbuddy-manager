@@ -44,6 +44,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from .. import config, keysvc, upstreamsvc
+from ..services import sanitizer
 from . import gateway
 
 logger = logging.getLogger('workbuddy.responses')
@@ -1293,6 +1294,10 @@ async def _handle(request: Request) -> JSONResponse | StreamingResponse:
         payload.setdefault('stream_options', {})
         if isinstance(payload['stream_options'], dict):
             payload['stream_options'].setdefault('include_usage', True)
+
+    # 出站 Prompt 脱敏与反代特征净化
+    if config.PROMPT_SANITIZER_ENABLED and isinstance(payload, dict):
+        payload = sanitizer.sanitize_payload(payload)
 
     resp_id = 'resp_' + uuid.uuid4().hex[:24]
     # 上游按密钥解析（多上游 / 分组隔离）；绑定缺失或停用时明确报错，不回落。

@@ -37,6 +37,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from .. import config, db, iputil, keysvc, upstreamsvc
 from ..routers.security import get_config as get_security_config
+from ..services import sanitizer
 # responses 只为复用推理凭据的编解码（`_encode_credential` / `_decode_credential`）：
 # Anthropic 的 `signature` 与 Responses 的 `encrypted_content` 语义完全相同——
 # 都是「客户端原样搬来搬去的不透明串」，两边编解码必须一致，否则同一轮对话在
@@ -1004,6 +1005,10 @@ async def messages(request: Request):
         payload.setdefault('stream_options', {})
         if isinstance(payload['stream_options'], dict):
             payload['stream_options'].setdefault('include_usage', True)
+
+    # 出站 Prompt 脱敏与反代特征净化
+    if config.PROMPT_SANITIZER_ENABLED and isinstance(payload, dict):
+        payload = sanitizer.sanitize_payload(payload)
 
     # 上游按密钥解析（多上游 / 分组隔离）；绑定缺失或停用时明确报错，不回落。
     try:

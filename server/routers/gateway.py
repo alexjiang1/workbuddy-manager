@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from .. import config, db, iputil, keysvc, upstreamsvc
 from ..config import _env_int
 from ..routers.security import get_config as get_security_config
+from ..services import sanitizer
 
 logger = logging.getLogger('workbuddy.gateway')
 
@@ -701,6 +702,10 @@ async def _chat(request: Request, upstream_path: str):
         body.setdefault('stream_options', {})
         if isinstance(body['stream_options'], dict):
             body['stream_options'].setdefault('include_usage', True)
+
+    # 出站 Prompt 脱敏与反代特征净化（剥离非官方系统标签、中性化多模型交接、遮蔽凭据）
+    if config.PROMPT_SANITIZER_ENABLED and isinstance(body, dict):
+        body = sanitizer.sanitize_payload(body)
 
     ua = request.headers.get('user-agent')
     upstream, upstream_err = _upstream_for(key, ip=ip, model=requested_model or '',

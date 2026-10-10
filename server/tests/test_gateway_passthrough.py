@@ -127,8 +127,8 @@ class GatewayPassthroughTest(unittest.TestCase):
         新增此类转换层时**显式**登记在此，而不是放宽匹配——豁免名单越长越该
         有人复核，静默放行会让这条约束慢慢失效。
         """
-        # 例外：协议转换层（不是转发热路径）
-        allow = {'routers/anthropic.py', 'routers/responses.py'}
+        # 例外：协议转换层与出站脱敏层
+        allow = {'routers/anthropic.py', 'routers/responses.py', 'services/sanitizer.py'}
         root = Path(__file__).resolve().parents[2] / 'server'
         hits = []
         for f in root.rglob('*.py'):
